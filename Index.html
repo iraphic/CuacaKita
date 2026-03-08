@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cuaca BMKG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #0ea5e9;
+    --sky-dark: #0369a1;
+    --sky-light: #e0f2fe;
+    --night: #0f172a;
+    --slate: #1e293b;
+    --muted: #64748b;
+    --soft: #f1f5f9;
+    --white: #ffffff;
+    --gold: #f59e0b;
+    --rain: #6366f1;
+    --storm: #7c3aed;
+    --sunny: #f59e0b;
+    --cloud: #94a3b8;
+    --radius: 20px;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: var(–night);
+color: var(–white);
+min-height: 100dvh;
+max-width: 430px;
+margin: 0 auto;
+position: relative;
+overflow-x: hidden;
+}
+
+/* ── BG GRADIENT ── */
+.bg-sky {
+background: linear-gradient(160deg, #0c4a6e 0%, #0369a1 30%, #0f172a 70%);
+}
+.bg-night {
+background: linear-gradient(160deg, #1e1b4b 0%, #312e81 30%, #0f172a 70%);
+}
+.bg-cloudy {
+background: linear-gradient(160deg, #1e293b 0%, #334155 30%, #0f172a 70%);
+}
+.bg-rain {
+background: linear-gradient(160deg, #1e1b4b 0%, #1e3a5f 30%, #0f172a 70%);
+}
+
+/* ── TOP SAFE AREA ── */
+#app {
+min-height: 100dvh;
+display: flex;
+flex-direction: column;
+transition: background 1s ease;
+}
+
+/* ── LOADING SCREEN ── */
+#loading {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 24px;
+padding: 40px;
+text-align: center;
+}
+
+.pulse-ring {
+width: 80px; height: 80px;
+border-radius: 50%;
+border: 3px solid rgba(14,165,233,0.3);
+position: relative;
+animation: pulse-ring 2s ease infinite;
+}
+.pulse-ring::before, .pulse-ring::after {
+content: ‘’;
+position: absolute;
+inset: -12px;
+border-radius: 50%;
+border: 2px solid rgba(14,165,233,0.15);
+animation: pulse-ring 2s ease infinite;
+}
+.pulse-ring::after { inset: -24px; animation-delay: 0.4s; }
+@keyframes pulse-ring {
+0%,100% { transform: scale(1); opacity: 1; }
+50% { transform: scale(1.05); opacity: 0.7; }
+}
+
+.pulse-icon {
+position: absolute;
+inset: 0;
+display: flex; align-items: center; justify-content: center;
+font-size: 32px;
+}
+
+#loading-text {
+font-size: 15px;
+color: rgba(255,255,255,0.6);
+line-height: 1.6;
+}
+#loading-step {
+font-size: 13px;
+color: var(–sky);
+margin-top: 4px;
+}
+
+/* ── ERROR SCREEN ── */
+#error-screen {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 40px 24px;
+text-align: center;
+gap: 16px;
+display: none;
+}
+
+.error-icon { font-size: 48px; }
+.error-title { font-family: ‘DM Serif Display’, serif; font-size: 22px; }
+.error-msg { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+.btn-retry {
+margin-top: 8px;
+padding: 12px 28px;
+background: var(–sky);
+border: none;
+border-radius: 50px;
+color: white;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+font-family: ‘DM Sans’, sans-serif;
+}
+
+.manual-search {
+width: 100%;
+display: flex;
+gap: 8px;
+margin-top: 8px;
+}
+
+.manual-search input {
+flex: 1;
+padding: 12px 16px;
+background: rgba(255,255,255,0.08);
+border: 1px solid rgba(255,255,255,0.15);
+border-radius: 12px;
+color: white;
+font-size: 14px;
+font-family: ‘DM Sans’, sans-serif;
+outline: none;
+}
+.manual-search input::placeholder { color: rgba(255,255,255,0.35); }
+.manual-search button {
+padding: 12px 16px;
+background: var(–sky);
+border: none;
+border-radius: 12px;
+color: white;
+font-size: 14px;
+cursor: pointer;
+}
+
+/* ── MAIN WEATHER ── */
+#weather-screen {
+display: none;
+flex-direction: column;
+flex: 1;
+padding-bottom: 32px;
+}
+
+/* ── HEADER ── */
+.header {
+padding: 56px 24px 24px;
+position: relative;
+}
+
+.header-top {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+margin-bottom: 4px;
+}
+
+.location-badge {
+display: flex;
+align-items: center;
+gap: 6px;
+background: rgba(255,255,255,0.12);
+backdrop-filter: blur(12px);
+border: 1px solid rgba(255,255,255,0.1);
+border-radius: 50px;
+padding: 6px 14px 6px 10px;
+font-size: 12px;
+font-weight: 500;
+cursor: pointer;
+max-width: 220px;
+}
+
+.location-badge .pin { font-size: 14px; }
+.location-badge .loc-name {
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+
+.refresh-btn {
+width: 36px; height: 36px;
+border-radius: 50%;
+background: rgba(255,255,255,0.1);
+border: 1px solid rgba(255,255,255,0.1);
+display: flex; align-items: center; justify-content: center;
+cursor: pointer;
+font-size: 16px;
+color: white;
+transition: background 0.2s;
+flex-shrink: 0;
+}
+.refresh-btn:hover { background: rgba(255,255,255,0.2); }
+.refresh-btn.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HERO WEATHER ── */
+.hero {
+padding: 0 24px 32px;
+position: relative;
+}
+
+.weather-emoji {
+font-size: 90px;
+line-height: 1;
+filter: drop-shadow(0 8px 24px rgba(0,0,0,0.3));
+animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+0%,100% { transform: translateY(0); }
+50% { transform: translateY(-8px); }
+}
+
+.temp-display {
+font-family: ‘DM Serif Display’, serif;
+font-size: 88px;
+line-height: 1;
+letter-spacing: -4px;
+margin-top: 8px;
+}
+
+.temp-unit {
+font-size: 36px;
+vertical-align: super;
+letter-spacing: 0;
+}
+
+.weather-desc-text {
+font-size: 18px;
+font-weight: 500;
+color: rgba(255,255,255,0.85);
+margin-top: 6px;
+text-transform: capitalize;
+}
+
+.weather-meta {
+margin-top: 6px;
+font-size: 13px;
+color: rgba(255,255,255,0.5);
+}
+
+/* ── STATS ROW ── */
+.stats-row {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 10px;
+padding: 0 20px 20px;
+}
+
+.stat-card {
+background: rgba(255,255,255,0.08);
+backdrop-filter: blur(16px);
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 16px;
+padding: 14px;
+text-align: center;
+}
+
+.stat-icon { font-size: 20px; }
+.stat-label { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-val { font-size: 16px; font-weight: 600; margin-top: 2px; }
+
+/* ── SECTION ── */
+.section {
+padding: 0 20px 20px;
+}
+
+.section-title {
+font-size: 11px;
+font-weight: 600;
+color: rgba(255,255,255,0.4);
+text-transform: uppercase;
+letter-spacing: 1.5px;
+margin-bottom: 12px;
+}
+
+/* ── HOURLY SCROLL ── */
+.hourly-scroll {
+overflow-x: auto;
+scrollbar-width: none;
+display: flex;
+gap: 10px;
+padding-bottom: 4px;
+}
+.hourly-scroll::-webkit-scrollbar { display: none; }
+
+.hour-card {
+flex-shrink: 0;
+width: 70px;
+background: rgba(255,255,255,0.07);
+border: 1px solid rgba(255,255,255,0.07);
+border-radius: 14px;
+padding: 12px 8px;
+text-align: center;
+transition: background 0.2s;
+}
+.hour-card.active {
+background: rgba(14,165,233,0.25);
+border-color: rgba(14,165,233,0.4);
+}
+
+.hour-time { font-size: 11px; color: rgba(255,255,255,0.5); }
+.hour-emoji { font-size: 24px; margin: 6px 0; }
+.hour-temp { font-size: 14px; font-weight: 600; }
+
+/* ── DAILY FORECAST ── */
+.daily-card {
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.06);
+border-radius: 16px;
+overflow: hidden;
+}
+
+.day-row {
+display: flex;
+align-items: center;
+padding: 14px 16px;
+gap: 12px;
+border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.day-row:last-child { border-bottom: none; }
+
+.day-name { flex: 1; font-size: 14px; font-weight: 500; }
+.day-emoji { font-size: 22px; }
+.day-desc { font-size: 11px; color: rgba(255,255,255,0.45); flex: 1; text-align: center; text-transform: capitalize; line-height: 1.2; }
+.day-temps { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); }
+.day-low { font-size: 13px; color: rgba(255,255,255,0.4); margin-left: 6px; }
+
+/* ── INFO CARDS ── */
+.info-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+}
+
+.info-card {
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.06);
+border-radius: 16px;
+padding: 16px;
+}
+
+.info-label { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+.info-val { font-size: 24px; font-weight: 700; margin: 6px 0 2px; }
+.info-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+/* ── ATTRIBUTION ── */
+.attribution {
+padding: 8px 20px;
+text-align: center;
+font-size: 11px;
+color: rgba(255,255,255,0.25);
+}
+.attribution b { color: rgba(255,255,255,0.4); }
+
+/* ── TOAST ── */
+#toast {
+position: fixed;
+bottom: 40px;
+left: 50%; transform: translateX(-50%);
+background: rgba(15,23,42,0.9);
+border: 1px solid rgba(255,255,255,0.1);
+backdrop-filter: blur(20px);
+border-radius: 50px;
+padding: 10px 20px;
+font-size: 13px;
+color: rgba(255,255,255,0.8);
+opacity: 0;
+transition: opacity 0.3s;
+z-index: 999;
+pointer-events: none;
+white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* ── ANIMATIONS ── */
+.fade-in {
+animation: fadeIn 0.6s ease forwards;
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(12px); }
+to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+</head>
+<body>
+<div id="app" class="bg-sky">
+
+  <!-- LOADING -->
+
+  <div id="loading">
+    <div class="pulse-ring">
+      <div class="pulse-icon">🛰️</div>
+    </div>
+    <div>
+      <div id="loading-text">Mendeteksi lokasi Anda...</div>
+      <div id="loading-step"></div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+
+  <div id="error-screen">
+    <div class="error-icon">📡</div>
+    <div class="error-title">Gagal Mendapatkan Lokasi</div>
+    <div class="error-msg" id="error-msg">Izinkan akses lokasi pada browser Anda, lalu coba lagi.</div>
+    <button class="btn-retry" onclick="startApp()">🔄 Coba Lagi</button>
+    <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-top:8px">atau cari manual</div>
+    <div class="manual-search">
+      <input type="text" id="manual-input" placeholder="Cari kecamatan / kota..." />
+      <button onclick="manualSearch()">🔍</button>
+    </div>
+    <div id="search-results" style="width:100%;margin-top:4px;display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- WEATHER -->
+
+  <div id="weather-screen">
+    <div class="header">
+      <div class="header-top">
+        <div class="location-badge" onclick="startApp()">
+          <span class="pin">📍</span>
+          <span class="loc-name" id="loc-name">Mendeteksi...</span>
+        </div>
+        <button class="refresh-btn" id="refresh-btn" onclick="startApp()">↻</button>
+      </div>
+      <div id="update-time" style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:6px;padding-left:4px;"></div>
+    </div>
+
+```
+<div class="hero fade-in">
+  <div class="weather-emoji" id="w-emoji">⛅</div>
+  <div class="temp-display" id="w-temp">--<span class="temp-unit">°</span></div>
+  <div class="weather-desc-text" id="w-desc">Memuat data cuaca...</div>
+  <div class="weather-meta" id="w-meta">Terasa seperti -- °C</div>
+</div>
+
+<div class="stats-row fade-in">
+  <div class="stat-card">
+    <div class="stat-icon">💧</div>
+    <div class="stat-label">Lembap</div>
+    <div class="stat-val" id="s-hu">--%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💨</div>
+    <div class="stat-label">Angin</div>
+    <div class="stat-val" id="s-ws">--</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">☁️</div>
+    <div class="stat-label">Awan</div>
+    <div class="stat-val" id="s-tcc">--%</div>
+  </div>
+</div>
+
+<div class="section fade-in">
+  <div class="section-title">Prakiraan Per 3 Jam</div>
+  <div class="hourly-scroll" id="hourly-container"></div>
+</div>
+
+<div class="section fade-in">
+  <div class="section-title">3 Hari ke Depan</div>
+  <div class="daily-card" id="daily-container"></div>
+</div>
+
+<div class="section fade-in">
+  <div class="section-title">Detail</div>
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-label">Jarak Pandang</div>
+      <div class="info-val" id="d-vs">--</div>
+      <div class="info-sub">km</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Arah Angin</div>
+      <div class="info-val" id="d-wd" style="font-size:18px;margin-top:8px;">--</div>
+      <div class="info-sub" id="d-wd-sub">dari --</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Kondisi</div>
+      <div class="info-val" id="d-weather-en" style="font-size:13px;margin-top:8px;line-height:1.3;">--</div>
+      <div class="info-sub">dalam Inggris</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Produksi Data</div>
+      <div class="info-val" id="d-analysis" style="font-size:13px;margin-top:8px;line-height:1.3;">--</div>
+      <div class="info-sub">BMKG</div>
+    </div>
+  </div>
+</div>
+
+<div class="attribution">
+  Sumber data: <b>BMKG</b> (Badan Meteorologi, Klimatologi, dan Geofisika)
+</div>
+```
+
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── WEATHER CODE TO EMOJI & COLOR ──
+const weatherMap = {
+  0: { emoji: '☀️', label: 'Cerah', bg: 'bg-sky' },
+  1: { emoji: '🌤️', label: 'Cerah Berawan', bg: 'bg-sky' },
+  2: { emoji: '⛅', label: 'Cerah Berawan', bg: 'bg-sky' },
+  3: { emoji: '🌥️', label: 'Berawan', bg: 'bg-cloudy' },
+  4: { emoji: '☁️', label: 'Berawan Tebal', bg: 'bg-cloudy' },
+  5: { emoji: '🌫️', label: 'Udara Kabur', bg: 'bg-cloudy' },
+  10: { emoji: '🌫️', label: 'Asap', bg: 'bg-cloudy' },
+  45: { emoji: '🌫️', label: 'Kabut', bg: 'bg-cloudy' },
+  60: { emoji: '🌦️', label: 'Hujan Ringan', bg: 'bg-rain' },
+  61: { emoji: '🌧️', label: 'Hujan Sedang', bg: 'bg-rain' },
+  63: { emoji: '🌧️', label: 'Hujan Lebat', bg: 'bg-rain' },
+  80: { emoji: '🌦️', label: 'Hujan Lokal', bg: 'bg-rain' },
+  95: { emoji: '⛈️', label: 'Hujan Petir', bg: 'bg-rain' },
+  97: { emoji: '⛈️', label: 'Hujan Petir Lebat', bg: 'bg-rain' },
+};
+
+function getWeatherInfo(code, desc) {
+  const info = weatherMap[code];
+  if (info) return info;
+  // Fallback by desc keywords
+  const d = (desc || '').toLowerCase();
+  if (d.includes('petir') || d.includes('guntur')) return { emoji: '⛈️', label: desc, bg: 'bg-rain' };
+  if (d.includes('hujan lebat')) return { emoji: '🌧️', label: desc, bg: 'bg-rain' };
+  if (d.includes('hujan')) return { emoji: '🌦️', label: desc, bg: 'bg-rain' };
+  if (d.includes('kabut') || d.includes('asap')) return { emoji: '🌫️', label: desc, bg: 'bg-cloudy' };
+  if (d.includes('berawan')) return { emoji: '⛅', label: desc, bg: 'bg-cloudy' };
+  if (d.includes('cerah')) return { emoji: '☀️', label: desc, bg: 'bg-sky' };
+  return { emoji: '🌤️', label: desc || 'Tidak Diketahui', bg: 'bg-sky' };
+}
+
+// ── LOCAL HOUR DETECTION ──
+function isNight() {
+  const h = new Date().getHours();
+  return h < 6 || h >= 19;
+}
+
+function getNightEmoji(info) {
+  if (isNight() && info.bg === 'bg-sky') return { ...info, emoji: '🌙' };
+  return info;
+}
+
+// ── TOAST ──
+function showToast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ── STEP TEXT ──
+function setStep(msg) {
+  document.getElementById('loading-step').textContent = msg;
+}
+
+function setLoadingText(msg) {
+  document.getElementById('loading-text').textContent = msg;
+}
+
+// ── WILAYAH DATA (embedded compact version) ──
+// We'll load the wilayah data from BMKG's Kode Wilayah
+// The reference JSON uses hierarchical: provinsi → kotkab → kecamatan → desa
+// We'll use Nominatim to reverse geocode, then match by district/subdistrict name
+
+async function reverseGeocode(lat, lon) {
+  setStep('Mencocokkan dengan wilayah Indonesia...');
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=id`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'CuacaBMKG-App/1.0' } });
+  if (!res.ok) throw new Error('Reverse geocode gagal');
+  return await res.json();
+}
+
+// ── FIND BMKG AREA CODE ──
+// Strategy: use Nominatim's district (kecamatan) + city (kotkab) to search BMKG's API
+// BMKG adm4 format: "31.71.03.1001" (provinsi.kotkab.kecamatan.desa)
+// We'll use the wilayah JSON from the reference repo (via CDN/raw)
+// Since we can't load 10MB JSON in artifact, we'll use a smart search approach:
+// Search BMKG's known structure using the geocoded names
+
+async function findBMKGCode(nominatimData) {
+  const addr = nominatimData.address || {};
+  
+  // Extract location parts
+  const suburb = addr.suburb || addr.quarter || '';
+  const district = addr.district || addr.city_district || addr.municipality || '';
+  const city = addr.city || addr.town || addr.county || addr.state_district || '';
+  const state = addr.state || addr.province || '';
+
+  // Store for display
+  const displayName = [suburb || district, city || state].filter(Boolean).join(', ');
+
+  setStep(`📍 ${displayName}`);
+  
+  // Try to find adm4 code via BMKG open data search
+  // We'll use a curated mapping approach + Nominatim's administrative codes
+  
+  // Try using OSM's place data to construct adm codes
+  // Nominatim returns place_id and osm data we can use
+  
+  // Strategy: Use the wilayah JSON from a CDN
+  // The RRafly repo has wilayah.json — let's try to get it
+  setStep('Mencari kode wilayah BMKG...');
+
+  // Use a smart search: try multiple kecamatan name variations against BMKG API
+  const kecamatanCandidates = [
+    addr.suburb,
+    addr.quarter, 
+    addr.district,
+    addr.city_district,
+  ].filter(Boolean);
+
+  return {
+    displayName,
+    kecamatanCandidates,
+    city,
+    state,
+    addr
+  };
+}
+
+// ── SEARCH WILAYAH JSON ──
+let wilayahData = null;
+async function loadWilayahData() {
+  if (wilayahData) return wilayahData;
+  setStep('Memuat data wilayah...');
+  try {
+    // Try the raw JSON from the reference repo
+    const url = 'https://raw.githubusercontent.com/RRafly/web-react-cuaca-bmkg/master/src/json/wilayah.json';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Cannot load wilayah');
+    wilayahData = await res.json();
+    return wilayahData;
+  } catch(e) {
+    // Fallback: try alternative source
+    try {
+      const url2 = 'https://raw.githubusercontent.com/RRafly/Kode-Wilayah-CSV-to-JSON/main/wilayah.json';
+      const res2 = await fetch(url2);
+      if (!res2.ok) throw new Error('Alt failed');
+      wilayahData = await res2.json();
+      return wilayahData;
+    } catch(e2) {
+      throw new Error('Tidak dapat memuat data wilayah. Cek koneksi internet.');
+    }
+  }
+}
+
+function normalize(str) {
+  return (str || '').toLowerCase()
+    .replace(/^(kecamatan|kota|kabupaten|kelurahan|desa)\s+/i, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+}
+
+function stringSimilarity(a, b) {
+  a = normalize(a); b = normalize(b);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.85;
+  
+  // Token matching
+  const wa = new Set(a.split(' '));
+  const wb = new Set(b.split(' '));
+  let matches = 0;
+  for (const w of wa) if (wb.has(w)) matches++;
+  return matches / Math.max(wa.size, wb.size);
+}
+
+function findBestMatch(candidates, list, keyFn, threshold = 0.7) {
+  let best = null, bestScore = 0;
+  for (const item of list) {
+    const name = keyFn(item);
+    for (const cand of candidates) {
+      const score = stringSimilarity(cand, name);
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+  }
+  return bestScore >= threshold ? best : null;
+}
+
+async function resolveADM4(nominatimData) {
+  const data = await loadWilayahData();
+  const addr = nominatimData.address || {};
+
+  // Extract candidate names
+  const stateCandidates = [addr.state, addr.province, addr.region].filter(Boolean);
+  const cityCandidates = [addr.city, addr.town, addr.county, addr.state_district, addr.municipality].filter(Boolean);
+  const districtCandidates = [addr.suburb, addr.quarter, addr.district, addr.city_district].filter(Boolean);
+
+  setStep('Mencocokkan provinsi...');
+
+  // wilayah.json structure: array of provinces with children
+  // Find province
+  let provinces = Array.isArray(data) ? data : (data.provinces || data.data || Object.values(data));
+  
+  // Handle different JSON structures
+  if (!Array.isArray(provinces)) {
+    // Try to get array from object
+    provinces = Object.entries(data).map(([k, v]) => ({ kode: k, nama: v.nama || k, ...v }));
+  }
+
+  const province = findBestMatch(stateCandidates, provinces, p => p.nama || p.name || p.provinsi || '', 0.5);
+
+  let adm4 = null;
+  let displayProv = province ? (province.nama || province.name || '') : stateCandidates[0] || '';
+  let displayCity = cityCandidates[0] || '';
+  let displayDist = districtCandidates[0] || '';
+
+  if (province) {
+    const kotaList = province.kabkota || province.kotkab || province.cities || province.children || [];
+    setStep('Mencocokkan kabupaten/kota...');
+    const kota = findBestMatch(cityCandidates, kotaList, k => k.nama || k.name || k.kotkab || '', 0.5);
+    
+    if (kota) {
+      displayCity = kota.nama || kota.name || displayCity;
+      const kecList = kota.kecamatan || kota.districts || kota.children || [];
+      setStep('Mencocokkan kecamatan...');
+      const kec = findBestMatch(districtCandidates, kecList, k => k.nama || k.name || '', 0.5);
+      
+      if (kec) {
+        displayDist = kec.nama || kec.name || displayDist;
+        // Get first desa/kelurahan
+        const desaList = kec.desa || kec.kelurahan || kec.villages || kec.children || [];
+        if (desaList.length > 0) {
+          const desa = desaList[0];
+          adm4 = desa.kode || desa.code || desa.adm4;
+        } else {
+          adm4 = kec.kode || kec.code;
+        }
+      } else {
+        // Use first kecamatan's first desa
+        if (kecList.length > 0) {
+          const firstKec = kecList[0];
+          const desaList = firstKec.desa || firstKec.kelurahan || firstKec.children || [];
+          adm4 = desaList[0] ? (desaList[0].kode || desaList[0].code) : (firstKec.kode || firstKec.code);
+        }
+      }
+    } else if (kotaList.length > 0) {
+      // Fallback: first kota
+      const firstKota = kotaList[0];
+      const kecList = firstKota.kecamatan || firstKota.children || [];
+      if (kecList.length > 0) {
+        const desaList = kecList[0].desa || kecList[0].children || [];
+        adm4 = desaList[0] ? (desaList[0].kode || desaList[0].code) : (kecList[0].kode || kecList[0].code);
+      }
+    }
+  }
+
+  return {
+    adm4,
+    displayName: [displayDist, displayCity].filter(Boolean).join(', ') || nominatimData.display_name?.split(',').slice(0,2).join(', '),
+    province: displayProv,
+    city: displayCity,
+    district: displayDist
+  };
+}
+
+// ── FETCH BMKG WEATHER ──
+async function fetchWeather(adm4) {
+  setStep(`Mengambil data cuaca BMKG... (${adm4})`);
+  const url = `https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${adm4}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`BMKG API error: ${res.status}`);
+  return await res.json();
+}
+
+// ── PARSE BMKG RESPONSE ──
+function parseWeather(data) {
+  // BMKG response structure varies — handle both known formats
+  let forecasts = [];
+  
+  if (data.data && Array.isArray(data.data)) {
+    // data.data is array of cuaca objects with cuaca array
+    for (const area of data.data) {
+      const cuacaList = area.cuaca || area.cuaca_harian || [];
+      for (const dayArr of cuacaList) {
+        if (Array.isArray(dayArr)) {
+          forecasts.push(...dayArr);
+        } else {
+          forecasts.push(dayArr);
+        }
+      }
+    }
+  } else if (Array.isArray(data)) {
+    forecasts = data;
+  } else if (data.cuaca) {
+    for (const dayArr of data.cuaca) {
+      if (Array.isArray(dayArr)) forecasts.push(...dayArr);
+      else forecasts.push(dayArr);
+    }
+  }
+
+  // Sort by local_datetime
+  forecasts.sort((a, b) => {
+    const da = new Date(a.local_datetime || a.utc_datetime || 0);
+    const db = new Date(b.local_datetime || b.utc_datetime || 0);
+    return da - db;
+  });
+
+  // Find "now" = first forecast >= current time (or last before)
+  const now = new Date();
+  let nowIdx = 0;
+  for (let i = 0; i < forecasts.length; i++) {
+    const ft = new Date(forecasts[i].local_datetime || forecasts[i].utc_datetime);
+    if (ft <= now) nowIdx = i;
+  }
+
+  return { forecasts, nowIdx };
+}
+
+// ── FORMAT HELPERS ──
+function fmtTime(dtStr) {
+  const d = new Date(dtStr);
+  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function fmtDay(dtStr, idx) {
+  if (idx === 0) return 'Hari Ini';
+  if (idx === 1) return 'Besok';
+  const d = new Date(dtStr);
+  return d.toLocaleDateString('id-ID', { weekday: 'long' });
+}
+
+// ── RENDER WEATHER UI ──
+function renderWeather(weatherData, location) {
+  const { forecasts, nowIdx } = parseWeather(weatherData);
+  if (!forecasts.length) throw new Error('Data cuaca kosong dari BMKG');
+
+  const now = forecasts[nowIdx] || forecasts[0];
+  const weatherCode = now.weather || now.cuaca || 0;
+  const info = getNightEmoji(getWeatherInfo(weatherCode, now.weather_desc || now.cuaca_desc));
+
+  // Set background
+  document.getElementById('app').className = info.bg;
+
+  // Location
+  document.getElementById('loc-name').textContent = location.displayName;
+
+  // Hero
+  document.getElementById('w-emoji').textContent = info.emoji;
+  document.getElementById('w-temp').innerHTML = `${Math.round(now.t || now.suhu || '--')}<span class="temp-unit">°</span>`;
+  document.getElementById('w-desc').textContent = now.weather_desc || now.cuaca_desc || info.label;
+  document.getElementById('w-meta').textContent = `Kelembapan ${now.hu || now.kelembapan || '--'}% · ${location.district || location.city}`;
+
+  // Stats
+  document.getElementById('s-hu').textContent = `${now.hu || '--'}%`;
+  document.getElementById('s-ws').textContent = `${now.ws || '--'} km/j`;
+  document.getElementById('s-tcc').textContent = `${now.tcc || '--'}%`;
+
+  // Update time
+  const updateTime = now.local_datetime || now.utc_datetime;
+  if (updateTime) {
+    const d = new Date(updateTime);
+    document.getElementById('update-time').textContent = `Data pukul ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+  }
+
+  // Detail
+  document.getElementById('d-vs').textContent = now.vs_text || now.jarak_pandang || '--';
+  document.getElementById('d-wd').textContent = getWindArrow(now.wd || now.arah_angin || '');
+  document.getElementById('d-wd-sub').textContent = `dari ${now.wd || now.arah_angin || '--'}`;
+  document.getElementById('d-weather-en').textContent = now.weather_desc_en || now.cuaca_desc_en || '--';
+  
+  const analysisDate = weatherData.data?.[0]?.analysis_date || now.analysis_date || '';
+  if (analysisDate) {
+    const ad = new Date(analysisDate);
+    document.getElementById('d-analysis').textContent = ad.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // Hourly (next 8 forecasts from now)
+  const hourlyHtml = forecasts.slice(nowIdx, nowIdx + 8).map((f, i) => {
+    const fi = getNightEmoji(getWeatherInfo(f.weather || f.cuaca || 0, f.weather_desc || f.cuaca_desc));
+    return `<div class="hour-card ${i === 0 ? 'active' : ''}">
+      <div class="hour-time">${i === 0 ? 'Kini' : fmtTime(f.local_datetime || f.utc_datetime)}</div>
+      <div class="hour-emoji">${fi.emoji}</div>
+      <div class="hour-temp">${Math.round(f.t || f.suhu || 0)}°</div>
+    </div>`;
+  }).join('');
+  document.getElementById('hourly-container').innerHTML = hourlyHtml;
+
+  // Daily (group by date, max 3 future days)
+  const byDay = {};
+  for (const f of forecasts) {
+    const d = new Date(f.local_datetime || f.utc_datetime);
+    const key = d.toISOString().slice(0, 10);
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(f);
+  }
+
+  const dayKeys = Object.keys(byDay).slice(0, 4);
+  const dailyHtml = dayKeys.map((key, idx) => {
+    const dayForecasts = byDay[key];
+    const temps = dayForecasts.map(f => f.t || f.suhu || 0).filter(Boolean);
+    const maxT = Math.max(...temps);
+    const minT = Math.min(...temps);
+    // Most common weather
+    const midF = dayForecasts[Math.floor(dayForecasts.length / 2)] || dayForecasts[0];
+    const di = getWeatherInfo(midF.weather || midF.cuaca || 0, midF.weather_desc || midF.cuaca_desc);
+    const desc = midF.weather_desc || midF.cuaca_desc || di.label;
+    
+    return `<div class="day-row">
+      <div class="day-name">${fmtDay(key, idx)}</div>
+      <div class="day-emoji">${di.emoji}</div>
+      <div class="day-desc">${desc}</div>
+      <div>
+        <span class="day-temps">${Math.round(maxT)}°</span>
+        <span class="day-low">${Math.round(minT)}°</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('daily-container').innerHTML = dailyHtml;
+
+  // Show weather screen
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-screen').style.display = 'none';
+  const ws = document.getElementById('weather-screen');
+  ws.style.display = 'flex';
+  document.getElementById('refresh-btn').classList.remove('spinning');
+}
+
+function getWindArrow(dir) {
+  const map = { 'N': '↑', 'NE': '↗', 'E': '→', 'SE': '↘', 'S': '↓', 'SW': '↙', 'W': '←', 'NW': '↖',
+    'UTARA': '↑', 'TIMUR LAUT': '↗', 'TIMUR': '→', 'TENGGARA': '↘',
+    'SELATAN': '↓', 'BARAT DAYA': '↙', 'BARAT': '←', 'BARAT LAUT': '↖', 'VARIABLE': '↻' };
+  return map[dir?.toUpperCase()] || dir || '–';
+}
+
+// ── SHOW ERROR ──
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('weather-screen').style.display = 'none';
+  const es = document.getElementById('error-screen');
+  es.style.display = 'flex';
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('refresh-btn').classList.remove('spinning');
+}
+
+// ── MANUAL SEARCH ──
+async function manualSearch() {
+  const q = document.getElementById('manual-input').value.trim();
+  if (!q) return;
+  document.getElementById('search-results').innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,0.5)">Mencari...</div>';
+  
+  try {
+    const data = await loadWilayahData();
+    const results = searchWilayah(data, q);
+    
+    if (!results.length) {
+      document.getElementById('search-results').innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,0.5)">Tidak ditemukan</div>';
+      return;
+    }
+    
+    const html = results.slice(0, 8).map(r => `
+      <div onclick="selectManual('${r.adm4}', '${escHtml(r.label)}')" style="
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+      ">
+        📍 ${r.label}
+      </div>
+    `).join('');
+    document.getElementById('search-results').innerHTML = html;
+  } catch(e) {
+    document.getElementById('search-results').innerHTML = `<div style="font-size:13px;color:rgba(255,255,255,0.5)">${e.message}</div>`;
+  }
+}
+
+function escHtml(s) { return s.replace(/'/g, "\\'"); }
+
+function searchWilayah(data, query) {
+  const results = [];
+  const q = normalize(query);
+  
+  const provinces = Array.isArray(data) ? data : Object.values(data);
+  
+  for (const prov of provinces) {
+    const kotaList = prov.kabkota || prov.kotkab || prov.cities || prov.children || [];
+    for (const kota of kotaList) {
+      const kecList = kota.kecamatan || kota.districts || kota.children || [];
+      for (const kec of kecList) {
+        const kecNorm = normalize(kec.nama || kec.name || '');
+        const kotaNorm = normalize(kota.nama || kota.name || '');
+        
+        if (kecNorm.includes(q) || kotaNorm.includes(q)) {
+          const desaList = kec.desa || kec.kelurahan || kec.children || [];
+          const firstDesa = desaList[0];
+          if (firstDesa) {
+            results.push({
+              adm4: firstDesa.kode || firstDesa.code,
+              label: `${kec.nama || kec.name}, ${kota.nama || kota.name}, ${prov.nama || prov.name}`
+            });
+          }
+        }
+      }
+    }
+  }
+  return results;
+}
+
+async function selectManual(adm4, label) {
+  document.getElementById('error-screen').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  setLoadingText('Mengambil data cuaca...');
+  setStep(label);
+  
+  try {
+    const weatherData = await fetchWeather(adm4);
+    renderWeather(weatherData, { displayName: label.split(',').slice(0,2).join(','), district: label.split(',')[0], city: label.split(',')[1] || '' });
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+// ── MAIN FLOW ──
+let currentAdm4 = null;
+
+async function startApp() {
+  // Show loading
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('error-screen').style.display = 'none';
+  document.getElementById('weather-screen').style.display = 'none';
+  document.getElementById('refresh-btn').classList.add('spinning');
+  setLoadingText('Mendeteksi lokasi Anda...');
+  setStep('Meminta izin GPS...');
+
+  try {
+    // 1. Get GPS
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) reject(new Error('Browser tidak mendukung GPS'));
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        timeout: 15000,
+        enableHighAccuracy: false,
+        maximumAge: 60000
+      });
+    });
+
+    const { latitude: lat, longitude: lon } = pos.coords;
+    setStep(`📡 ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+
+    // 2. Reverse geocode
+    setLoadingText('Menentukan wilayah...');
+    const nominatim = await reverseGeocode(lat, lon);
+
+    // 3. Resolve ADM4
+    setLoadingText('Mencari kode wilayah BMKG...');
+    const location = await resolveADM4(nominatim);
+
+    if (!location.adm4) {
+      throw new Error(`Kode wilayah tidak ditemukan untuk ${location.displayName}. Coba cari manual.`);
+    }
+
+    currentAdm4 = location.adm4;
+
+    // 4. Fetch weather
+    setLoadingText('Mengambil prakiraan cuaca...');
+    const weatherData = await fetchWeather(location.adm4);
+
+    // 5. Render
+    renderWeather(weatherData, location);
+    showToast(`📍 ${location.displayName}`);
+
+  } catch (err) {
+    console.error(err);
+    let msg = err.message;
+    if (err.code === 1) msg = 'Izin lokasi ditolak. Aktifkan GPS di pengaturan browser Anda.';
+    else if (err.code === 2) msg = 'Posisi tidak tersedia. Pastikan GPS aktif.';
+    else if (err.code === 3) msg = 'Waktu permintaan GPS habis. Coba lagi.';
+    showError(msg);
+  }
+}
+
+// ── INIT ──
+startApp();
+
+// Allow enter key on manual search
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('manual-input');
+  if (inp) inp.addEventListener('keyup', e => { if (e.key === 'Enter') manualSearch(); });
+});
+</script>
+
+</body>
+</html>
